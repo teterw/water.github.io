@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;700&display=swap" rel="stylesheet">
 
-
     <title>Water Challenge</title>
     <style>
         body {
@@ -18,8 +17,9 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             gap: 20px;
+            padding: 20px 0;
         }
 
         .container {
@@ -29,7 +29,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 250px;
-            margin-top: 30px;
+            margin-top: 20px;
         }
 
         h1 {
@@ -72,6 +72,11 @@
             background-color: #276749;
         }
 
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
         #challengeContainer {
             text-align: center;
             padding: 20px;
@@ -79,7 +84,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 250px;
-            margin-top: 30px;
+            margin-top: 20px;
         }
 
         #timer {
@@ -168,20 +173,80 @@
         #startChallenge {
             margin: 20px auto;
         }
+        
         #toppage {
-            margin-top: 50px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            max-width: 1200px;
         }
+        
         #totalIntake {
             font-size: 1.2rem;
             color: #3a8ac0;
             margin: 10px 0;
         }
 
+        #historyContainer {
+            text-align: left;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #historyList {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #historyList li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        #historyList li:last-child {
+            border-bottom: none;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .amount {
+            color: #3a8ac0;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            #toppage {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .container, #challengeContainer, #historyContainer {
+                width: 90%;
+                max-width: 300px;
+            }
+        }
     </style>
     <script>
         let challengeTimer;
         let timeRemaining;
         let totalIntake = 0;
+        let waterHistory = [];
 
         function updateGrassHeight(intake) {
             const grass = document.getElementById("grass");
@@ -189,7 +254,7 @@
             const heightPercent = Math.min((intake / 3000) * 100, 100);
             grass.style.height = `${heightPercent}%`;
 
-            if (heightPercent === 100) {
+            if (intake > 0 && grass.style.height !== `${heightPercent}%`) {
                 splashEffect.classList.add('splash');
                 setTimeout(() => {
                     splashEffect.classList.remove('splash');
@@ -199,11 +264,12 @@
 
         function startChallenge() {
             totalIntake = 0;
+            waterHistory = [];
             document.getElementById('totalIntake').textContent = `Total Intake: 0ml`;
+            document.getElementById('historyList').innerHTML = '';
             updateGrassHeight(0);
 
-
-            timeRemaining = 86400;
+            timeRemaining = 86400; // 24 hours in seconds
 
             updateTimer();
             challengeTimer = setInterval(updateTimer, 1000);
@@ -232,6 +298,40 @@
             timeRemaining--;
         }
 
+        function formatTime(date) {
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+        function addToHistory(amount) {
+            const now = new Date();
+            const timeString = formatTime(now);
+            
+            waterHistory.push({
+                time: timeString,
+                amount: amount,
+                timestamp: now.getTime()
+            });
+            
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            // Sort history by most recent first
+            const sortedHistory = [...waterHistory].sort((a, b) => b.timestamp - a.timestamp);
+            
+            sortedHistory.forEach(entry => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span class="timestamp">${entry.time}</span>: <span class="amount">${entry.amount}ml</span>`;
+                historyList.appendChild(li);
+            });
+        }
+
         function checkWaterIntake() {
             const inputField = document.getElementById("challengeInput");
             const warningDisplay = document.getElementById('warningChallenge');
@@ -241,17 +341,29 @@
                 const numValue = Number(value);
 
                 if (numValue > 0 && numValue <= 3000) {
+                    const prevTotal = totalIntake;
                     totalIntake += numValue;
-                    totalIntake = Math.min(totalIntake, 3000);
+                    
+                    if (totalIntake > 3000) {
+                        const allowedAmount = 3000 - prevTotal;
+                        totalIntake = 3000;
+                        
+                        if (allowedAmount > 0) {
+                            addToHistory(allowedAmount);
+                            warningDisplay.textContent = `Cup is full! Only added ${allowedAmount}ml`;
+                        } else {
+                            warningDisplay.textContent = 'Cup is already full!';
+                        }
+                    } else {
+                        addToHistory(numValue);
+                        warningDisplay.textContent = totalIntake === 3000 
+                            ? 'Cup is full!' 
+                            : 'Water added to your intake';
+                    }
                     
                     updateGrassHeight(totalIntake);
                     document.getElementById('totalIntake').textContent = `Total Intake: ${totalIntake}ml`;
-                    
-                    warningDisplay.textContent = totalIntake === 3000 
-                        ? 'Cup is full!' 
-                        : 'Water added to your intake';
                     warningDisplay.style.color = 'green';
-
                     inputField.value = '';
                 } else {
                     warningDisplay.textContent = 'Please enter a valid number between 1 and 3000';
@@ -262,6 +374,11 @@
                 warningDisplay.style.color = 'red';
             }
         }
+
+        // Initialize timer display when page loads
+        window.onload = function() {
+            document.getElementById('timer').textContent = 'Time Left: 24:00:00';
+        };
     </script>
 </head>
 
@@ -269,7 +386,8 @@
     <div id="toppage">
         <div id="challengeContainer">
             <h1>Water Challenge</h1>
-            <div id="totalIntake">ปริมาณน้ำที่ได้ดื่ม: 0ml</div>
+            <div id="totalIntake">Total Intake: 0ml</div>
+            <div id="timer">Time Left: 24:00:00</div>
 
             <button id="startChallenge" onclick="startChallenge()">เริ่ม Challenge</button>
 
@@ -278,13 +396,18 @@
 
             <div id="warningChallenge"></div>
         </div>
+
         <div class="container">
             <h1>ระดับน้ำตอนนี้</h1>
-
             <div id="grassCup">
                 <div id="grass"></div>
                 <div id="splashEffect"></div>
             </div>
+        </div>
+
+        <div id="historyContainer">
+            <h1>ประวัติการดื่มน้ำ</h1>
+            <ul id="historyList"></ul>
         </div>
     </div>
 </body>
