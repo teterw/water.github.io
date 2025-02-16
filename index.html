@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;700&display=swap" rel="stylesheet">
+
+
+    <title>Water Challenge</title>
+    <style>
+        body {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            gap: 20px;
+        }
+
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 250px;
+            margin-top: 30px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #3a8ac0;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1rem;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+            transition: border-color 0.3s;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"]:focus {
+            border-color: #3a8ac0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #3a8ac0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #276749;
+        }
+
+        #challengeContainer {
+            text-align: center;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 250px;
+            margin-top: 30px;
+        }
+
+        #timer {
+            font-size: 1.2rem;
+            margin: 10px 0;
+            color: #3a8ac0;
+        }
+
+        #warningChallenge {
+            color: red;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        #grassCup {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            background: #b3d9ff;
+            border: 2px solid #808080;
+            border-radius: 10px;
+            margin: 20px auto;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        #grass {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            background: #3a8ac0;
+            transition: height 0.3s;
+        }
+
+        #splashEffect {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            background: rgba(58, 138, 192, 0.5);
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .splash {
+            animation: splash 0.5s ease-out;
+        }
+
+        @keyframes splash {
+            0% { height: 0; opacity: 0; }
+            50% { height: 50%; opacity: 1; }
+            100% { height: 0; opacity: 0; }
+        }
+
+        #grassCup::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(to top,
+                    transparent,
+                    transparent 19px,
+                    #808080 20px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #grassCup::after {
+            content: "";
+            position: absolute;
+            left: -15px;
+            width: 15px;
+            height: 100%;
+            background: repeating-linear-gradient(to top,
+                    transparent,
+                    transparent 19px,
+                    #808080 20px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #startChallenge {
+            margin: 20px auto;
+        }
+        #toppage {
+            margin-top: 50px;
+        }
+        #totalIntake {
+            font-size: 1.2rem;
+            color: #3a8ac0;
+            margin: 10px 0;
+        }
+
+    </style>
+    <script>
+        let challengeTimer;
+        let timeRemaining;
+        let totalIntake = 0;
+
+        function updateGrassHeight(intake) {
+            const grass = document.getElementById("grass");
+            const splashEffect = document.getElementById("splashEffect");
+            const heightPercent = Math.min((intake / 3000) * 100, 100);
+            grass.style.height = `${heightPercent}%`;
+
+            if (heightPercent === 100) {
+                splashEffect.classList.add('splash');
+                setTimeout(() => {
+                    splashEffect.classList.remove('splash');
+                }, 500);
+            }
+        }
+
+        function startChallenge() {
+            totalIntake = 0;
+            document.getElementById('totalIntake').textContent = `Total Intake: 0ml`;
+            updateGrassHeight(0);
+
+
+            timeRemaining = 86400;
+
+            updateTimer();
+            challengeTimer = setInterval(updateTimer, 1000);
+
+            document.getElementById('startChallenge').disabled = true;
+        }
+
+        function updateTimer() {
+            const timerDisplay = document.getElementById('timer');
+            const warningDisplay = document.getElementById('warningChallenge');
+
+            const hours = Math.floor(timeRemaining / 3600);
+            const minutes = Math.floor((timeRemaining % 3600) / 60);
+            const seconds = timeRemaining % 60;
+
+            timerDisplay.textContent = `Time Left: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (timeRemaining <= 0) {
+                clearInterval(challengeTimer);
+                timerDisplay.textContent = 'Time is up!';
+                warningDisplay.textContent = 'Daily water challenge completed!';
+                document.getElementById('startChallenge').disabled = false;
+                return;
+            }
+
+            timeRemaining--;
+        }
+
+        function checkWaterIntake() {
+            const inputField = document.getElementById("challengeInput");
+            const warningDisplay = document.getElementById('warningChallenge');
+            const value = inputField.value.trim();
+
+            if (!isNaN(value) && value !== "") {
+                const numValue = Number(value);
+
+                if (numValue > 0 && numValue <= 3000) {
+                    totalIntake += numValue;
+                    totalIntake = Math.min(totalIntake, 3000);
+                    
+                    updateGrassHeight(totalIntake);
+                    document.getElementById('totalIntake').textContent = `Total Intake: ${totalIntake}ml`;
+                    
+                    warningDisplay.textContent = totalIntake === 3000 
+                        ? 'Cup is full!' 
+                        : 'Water added to your intake';
+                    warningDisplay.style.color = 'green';
+
+                    inputField.value = '';
+                } else {
+                    warningDisplay.textContent = 'Please enter a valid number between 1 and 3000';
+                    warningDisplay.style.color = 'red';
+                }
+            } else {
+                warningDisplay.textContent = 'Please enter a valid number';
+                warningDisplay.style.color = 'red';
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="toppage">
+        <div id="challengeContainer">
+            <h1>Water Challenge</h1>
+            <div id="totalIntake">ปริมาณน้ำที่ได้ดื่ม: 0ml</div>
+
+            <button id="startChallenge" onclick="startChallenge()">เริ่ม Challenge</button>
+
+            <input type="text" id="challengeInput" placeholder="ปริมาณน้ำที่ได้ดื่ม (ml)">
+            <button onclick="checkWaterIntake()">ยืนยันปริมาณ</button>
+
+            <div id="warningChallenge"></div>
+        </div>
+        <div class="container">
+            <h1>ระดับน้ำตอนนี้</h1>
+
+            <div id="grassCup">
+                <div id="grass"></div>
+                <div id="splashEffect"></div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
